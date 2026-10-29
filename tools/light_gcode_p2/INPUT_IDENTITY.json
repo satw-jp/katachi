@@ -1,0 +1,14 @@
+{
+  "gcode": {
+    "path": "C:\\Users\\as\\AppData\\Local\\Temp\\bamboo_model\\Wed_Oct_21\\13_16_56#6672#69\\Metadata\\.6672.0.gcode",
+    "sha256": "3621f2f42bab5881d7a8dae1045337e0c32e950531261256ed3b7496d8be6744"
+  },
+  "source": {
+    "path": "J:\\My Drive\\codex\\2026-09-28\\files-pasted-by-the-user-minil\\outputs\\MINIL_C_LIGHTWEIGHT_REVIEW_20261021\\MINIL_C_OVERVIEW_LIGHT.3mf",
+    "sha256": "ecaa3527c26a6b608191cb4fac4f6d8db6d1c871be2b1adc62854d7f84266415"
+  },
+  "prefix": {
+    "lines": 200000,
+    "sha256": "be34fa108e0773100b1d52d3f76e6ecff12d2ef10beace77abff1b16bcbdc0f7"
+  }
+}

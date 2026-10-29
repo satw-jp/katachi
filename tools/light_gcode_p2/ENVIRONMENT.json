@@ -1,0 +1,24 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "executable": "C:\\Users\\as\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "libraries": {
+    "numpy": {
+      "version": "2.2.6",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\github-google-drive-github-issue-36\\outputs\\MINIL_LOWZ50_SAVED_LIGHT_GCODE_DIAGNOSTIC_20261023\\runtime\\numpy\\__init__.py"
+    },
+    "numba": {
+      "version": "0.68.0",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\github-google-drive-github-issue-36\\outputs\\MINIL_LOWZ50_SAVED_LIGHT_GCODE_DIAGNOSTIC_20261023\\runtime\\numba\\__init__.py"
+    },
+    "llvmlite": {
+      "version": "0.50.0",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\github-google-drive-github-issue-36\\outputs\\MINIL_LOWZ50_SAVED_LIGHT_GCODE_DIAGNOSTIC_20261023\\runtime\\llvmlite\\__init__.py"
+    },
+    "shapely": {
+      "version": "2.1.2",
+      "path": "J:\\My Drive\\codex\\2026-10-07\\github-google-drive-github-issue-36\\outputs\\LIGHT_GCODE_P2_ROOT_CAUSE_AND_SCALABILITY_20261029\\deps\\shapely\\__init__.py",
+      "geos": "3.13.1"
+    }
+  }
+}

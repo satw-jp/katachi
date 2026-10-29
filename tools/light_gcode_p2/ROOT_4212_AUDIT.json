@@ -1,0 +1,62 @@
+{
+  "line": 4212,
+  "source_sha256": "cb1fce213179c651d97795c16b4c82e19d23a8c1fd7f82fe4d3efb1c384927ce",
+  "source_gcode_sha256": "3621f2f42bab5881d7a8dae1045337e0c32e950531261256ed3b7496d8be6744",
+  "old_bounds": [
+    0.4111570510256304,
+    1.0
+  ],
+  "threshold": 0.65,
+  "donors": 588,
+  "independent_method": "inscribed/circumscribed polygon capsule unions, GEOS double with explicit 1e-7 relative area guard",
+  "runs": [
+    {
+      "q": 32,
+      "bounds": [
+        0.9845678033954759,
+        0.985165707724276,
+        9.517028758823358,
+        588,
+        false
+      ],
+      "seconds": 0.4086079000001064
+    },
+    {
+      "q": 64,
+      "bounds": [
+        0.9845721526748554,
+        0.9847218818262284,
+        9.517028758823358,
+        588,
+        false
+      ],
+      "seconds": 0.5056647999999768
+    },
+    {
+      "q": 128,
+      "bounds": [
+        0.9845732400022634,
+        0.984610967193899,
+        9.517028758823358,
+        588,
+        false
+      ],
+      "seconds": 0.6862295999999333
+    }
+  ],
+  "decision": "SUPPORTED_TOOLPATH",
+  "prior_history": "P1 exact certified prior layer donors; no future material",
+  "adaptive_internal_measurement": {
+    "total_lo": 3.912993479003927,
+    "total_hi": 14.176582932128996,
+    "nodes": 2409,
+    "exhausted": false,
+    "area": 9.517028758823358,
+    "area_lo": 9.517028758823358,
+    "area_hi": 9.517028758823358,
+    "tolerance": 0.019034057517646717,
+    "lo": 0.4111570510256304,
+    "hi": 1.0
+  },
+  "cause": "Per-terminal-rectangle area tolerance is not a bound on summed uncertain boundary area. Long thin diagonal capsule crosses many unresolved rectangles. Node budget was NOT exhausted; high total uncertain area clamps upper fraction to 1. No thresholds or tolerance were changed."
+}

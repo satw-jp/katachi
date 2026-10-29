@@ -1,0 +1,222 @@
+{
+  "status": "VERIFIED_VERSION_SCOPED_MODAL_WIDTH",
+  "producer": "BambuStudio 02.08.02.61",
+  "scope": "only recognized exact header within first 16 lines; unknown versions retain feature reset; explicit invalid/zero width remains None",
+  "source_evidence": [
+    {
+      "path": "src/libslic3r/GCode.cpp",
+      "lines": [
+        7390,
+        7396
+      ],
+      "meaning": "role and width change checks independent"
+    },
+    {
+      "path": "src/libslic3r/GCode/GCodeProcessor.cpp",
+      "lines": [
+        3309,
+        3424,
+        6108
+      ],
+      "meaning": "role setter does not reset forced width; width comment changes forced width"
+    }
+  ],
+  "reference_files": {
+    "Bambu_GCode.cpp": "94297f3573d4639c0405b8601db6a5eb2b41790a0db65636bce578284c8cc94e",
+    "Bambu_GCodeProcessor.cpp": "428fb16690b4cd0dea5b7572f49fc080203b30457ac59a7caff6cedfb5f2a751"
+  },
+  "special": [
+    {
+      "line": 45029,
+      "raw": "; LINE_WIDTH: 0.41999",
+      "old_width": 0.41999,
+      "new_width": 0.41999,
+      "width_source_line": 45029,
+      "move": null
+    },
+    {
+      "line": 45068,
+      "raw": "; FEATURE: Internal solid infill",
+      "old_width": null,
+      "new_width": 0.41999,
+      "width_source_line": 45029,
+      "move": null
+    },
+    {
+      "line": 45071,
+      "raw": "G1 X60.542 Y173.018 E.00709",
+      "old_width": null,
+      "new_width": 0.41999,
+      "width_source_line": 45029,
+      "move": {
+        "lineno": 45071,
+        "layer": 4,
+        "x0": 60.808,
+        "y0": 173.364,
+        "x1": 60.542,
+        "y1": 173.018,
+        "z0": 0.8,
+        "z1": 0.8,
+        "de": 0.00709,
+        "width": 0.41999,
+        "role": "Internal solid infill",
+        "object_id": "787",
+        "g": "G1",
+        "i": null,
+        "j": null,
+        "r": null,
+        "z_comment": 0.8,
+        "layer_height": 0.1,
+        "unsupported_reason": null
+      }
+    },
+    {
+      "line": 45139,
+      "raw": "; LINE_WIDTH: 0.54704",
+      "old_width": 0.54704,
+      "new_width": 0.54704,
+      "width_source_line": 45139,
+      "move": null
+    },
+    {
+      "line": 45396,
+      "raw": "G2 X100.911 Y120.255 I-.025 J.048 E.00526",
+      "old_width": 0.48352,
+      "new_width": 0.48352,
+      "width_source_line": 45392,
+      "move": {
+        "lineno": 45396,
+        "layer": 4,
+        "x0": 100.882,
+        "y0": 120.205,
+        "x1": 100.911,
+        "y1": 120.255,
+        "z0": 0.8,
+        "z1": 0.8,
+        "de": 0.00526,
+        "width": 0.48352,
+        "role": "Overhang wall",
+        "object_id": "787",
+        "g": "G2",
+        "i": -0.025,
+        "j": 0.048,
+        "r": null,
+        "z_comment": 0.8,
+        "layer_height": 0.1,
+        "unsupported_reason": null
+      }
+    }
+  ],
+  "examples": [
+    {
+      "line": 45071,
+      "feature_line": 45068,
+      "raw": "G1 X60.542 Y173.018 E.00709",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 45029,
+      "role": "Internal solid infill"
+    },
+    {
+      "line": 45523,
+      "feature_line": 45520,
+      "raw": "G2 X153.911 Y121.552 I.006 J-.031 E.00067",
+      "old": null,
+      "new": 0.36146,
+      "width_source_line": 45506,
+      "role": "Overhang wall"
+    },
+    {
+      "line": 45527,
+      "feature_line": 45525,
+      "raw": "G1 X154.038 Y121.41 E.00265",
+      "old": null,
+      "new": 0.36146,
+      "width_source_line": 45506,
+      "role": "Outer wall"
+    },
+    {
+      "line": 45786,
+      "feature_line": 45783,
+      "raw": "G1 X164.484 Y81.738 E.00709",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 45744,
+      "role": "Internal solid infill"
+    },
+    {
+      "line": 83137,
+      "feature_line": 83134,
+      "raw": "G1 X60.542 Y173.018 E.00709",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83095,
+      "role": "Internal solid infill"
+    },
+    {
+      "line": 83479,
+      "feature_line": 83476,
+      "raw": "G3 X100.839 Y120.744 I-.11 J-.114 E.0028",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Overhang wall"
+    },
+    {
+      "line": 83483,
+      "feature_line": 83481,
+      "raw": "G1 X100.738 Y120.741 E.00164",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Outer wall"
+    },
+    {
+      "line": 83494,
+      "feature_line": 83491,
+      "raw": "G1 X100.374 Y120.4 E.00372",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Overhang wall"
+    },
+    {
+      "line": 83499,
+      "feature_line": 83497,
+      "raw": "G3 X100.431 Y120.023 I.236 J-.04 E.00347",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Outer wall"
+    },
+    {
+      "line": 83504,
+      "feature_line": 83501,
+      "raw": "G1 X100.472 Y119.936 E.00157",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Overhang wall"
+    },
+    {
+      "line": 83510,
+      "feature_line": 83508,
+      "raw": "G1 X100.986 Y119.841 E.00435",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Outer wall"
+    },
+    {
+      "line": 83534,
+      "feature_line": 83531,
+      "raw": "G1 X101.301 Y120.322 E.00045",
+      "old": null,
+      "new": 0.41999,
+      "width_source_line": 83464,
+      "role": "Overhang wall"
+    }
+  ],
+  "changed_positive_moves_in_200000": 360,
+  "not_physical_width_measurement": true
+}
