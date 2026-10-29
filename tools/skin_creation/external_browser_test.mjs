@@ -25,7 +25,7 @@ async function fill(id,value){await page.locator('#'+id).fill(String(value));awa
 try{
  await openContext();const start=performance.now();await page.goto(base+'/skin-rebuild.html?mode=creation');await page.locator('#generate:not([disabled])').waitFor();if((await state()).history.length){await page.locator('#new-project').click();await page.waitForFunction(()=>document.querySelector('#generated-status').textContent==='未生成');}await record('initial-ui-ready',start);
  await page.locator('#source-mode').selectOption('external');await page.locator('#host-file').setInputFiles(out+'/independent-octahedron.stl');await page.waitForFunction(()=>document.querySelector('#host-info').textContent.includes('SHA256'));
- assert(await page.locator('#generate').isDisabled(),'mm must be confirmed');await page.locator('#confirm-mm').check();await fill('host-scale',1.2);await page.locator('#host-axis').selectOption('y');
+ assert(await page.locator('#generate').isDisabled(),'mm must be confirmed');await page.locator('#confirm-mm').check();await fill('external-flower-scale',1);await fill('density',1);await fill('seed',20261029);await fill('host-scale',1.2);await page.locator('#host-axis').selectOption('y');
  const t=await generate('host-scale-and-orientation');assert(t.recipe.hostScale===1.2&&t.recipe.upAxis==='y','explicit transform');
  await fill('host-scale',1);await page.locator('#host-axis').selectOption('z');const a=await generate('baseline-22');assert(a.flowerCount===22,'baseline count');
  await fill('external-flower-scale',.8);const b=await generate('size-34');assert(b.flowerCount===34&&a.surfaceHash!==b.surfaceHash,'real size changes');
