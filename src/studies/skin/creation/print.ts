@@ -31,7 +31,7 @@ export function createPrintUI() {
   const presets=el<HTMLSelectElement>('print-presets');const names=Object.keys(value?.presets||{});
   if(JSON.stringify(Array.from(presets.options,o=>o.value))!==JSON.stringify(names)){const selected=presets.value;presets.replaceChildren(...names.map(n=>new Option(n,n)));if(names.includes(selected))presets.value=selected;}
   const selected=project?.selected?project.results[project.selected]:null;
-  el('print-target').textContent=selected?`対象 ${selected.id} · 花 ${selected.flowerCount} · 枝 ${selected.recipe.diameter} mm · ${selected.meshHash.slice(0,12)}`:'先に「この造形で進める」で対象を選択してください';
+  el('print-target').textContent=selected?`対象 ${selected.id} · 花 ${selected.flowerCount} · 枝 ${selected.recipe.diameter} mm · ${selected.meshHash?.slice(0,12) ?? '未生成'}`:'先に「この造形で進める」で対象を選択してください';
   el<HTMLImageElement>('print-thumbnail').hidden=imageId!==selected?.id;
   const p=value?.prepared;const active=value?.active?.status==='running';
   for(const id of ['print-preset-save','print-preset-load','print-default','print-presets',...keys.map(k=>'print-'+k)])el<HTMLButtonElement>(id).disabled=busy||active;

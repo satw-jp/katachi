@@ -8,8 +8,8 @@ export interface ResultInfo {
   flowerCount: number;
   memberCount: number;
   surfaceHash: string;
-  centerlineHash: string;
-  meshHash: string;
+  centerlineHash: string | null;
+  meshHash: string | null;
 }
 export interface ProjectState {
   history: string[];

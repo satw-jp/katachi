@@ -189,7 +189,7 @@ async function display(): Promise<void> {
   const comparison = state?.compare ? state.results[state.compare] : undefined;
   const ids = current ? [current.id, ...(comparison ? [comparison.id] : [])] : [];
   const key = JSON.stringify(ids);
-  if (key === shownKey || key === renderingKey || !view) return;
+  if ((key === shownKey && !renderingKey) || key === renderingKey || !view) return;
   renderingKey = key;
   el("empty-view").hidden = false;
   el("empty-view").textContent = current ? "実生成メッシュを読み込み中…" : "mini MOCOMOCO ＋ D6\n右の「花・内部枝を生成」から制作を始めます。";
